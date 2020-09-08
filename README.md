@@ -1,4 +1,4 @@
-第一节课内容：JSX 的原理和关键实现。  
+#第一节课内容：JSX 的原理和关键实现  
 思路步骤：
 1. 使用 webpack 的 pulgin(@babel/plugin-transform-react-jsx) 在 dist 中看到了 jsx 被编译成了 React.createElement，所以要想着怎样实现 React.createElement,
 React.createElement 只是个名字，可以换成自己的，代码中换成了 createElement
@@ -25,3 +25,7 @@ React.createElement 只是个名字，可以换成自己的，代码中换成了
 2. 所以，.root 肯定是自定义组件执行 render() 的结果。然后 document.body.append(com.root)
 3. 先不要抽取 ElementWrapper 和 TextWrapper，写好后再一步步抽取
 
+#第二节课内容：为 toy-react 添加生命周期
+思路：
+1. 添加 this.state 并运行成功
+2. root 换成 range 并运行成功

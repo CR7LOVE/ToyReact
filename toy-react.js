@@ -1,3 +1,5 @@
+const RENDER_TO_DOM = Symbol('render to dom');
+
 class ElementWrapper {
     constructor(type) {
         this.root = document.createElement(type);
@@ -6,7 +8,14 @@ class ElementWrapper {
         this.root.setAttribute(name, value)
     }
     appendChild(component) {
-        this.root.appendChild(component.root); // 注意这里是 component.root
+        let range = document.createRange();
+        range.setStart(this.root, this.root.childNodes.length); // TODO: 这里没懂
+        range.setEnd(this.root, this.root.childNodes.length);
+        component[RENDER_TO_DOM](range);
+    }
+    [RENDER_TO_DOM](range) {
+        range.deleteContents();
+        range.insertNode(this.root);
     }
 }
 
@@ -14,25 +23,25 @@ class TextWrapper {
     constructor(content) {
         this.root = document.createTextNode(content);
     }
+    [RENDER_TO_DOM](range) {
+        range.deleteContents();
+        range.insertNode(this.root);
+    }
 }
 
 export class Component {
     constructor() {
         this.props = Object.create(null);
         this.children = [];
-        this._root = null;
     }
     setAttribute(name, value) {
         this.props[name] = value;
     }
     appendChild(component) {
-        this.children.push(component) // 注意这里就没有 .root，上面 L9 有 .root 是因为一个节点要添加另一个节点，所以是 .root appendChild .root，而这里只是存到自己的数组中，所以不用 .root
+        this.children.push(component)
     }
-    get root() {
-        if(!this._root) {
-            this._root = this.render().root; // render 指的是 自定义组件中的 render，render() 的结果是 JSX，JSX 会被编译成 React.createElement()，所以这里又会调用 createElement,
-        }
-        return this._root;
+    [RENDER_TO_DOM](range){
+        this.render()[RENDER_TO_DOM](range); // component[RENDER_TO_DOM](range) 时会调用这里
     }
 }
 
@@ -53,6 +62,9 @@ export function createElement(type, attributes, ...children) {
             if(typeof child === 'string') {
                 child = new TextWrapper(child);
             }
+            if(child === null) {
+                continue;
+            }
             if(typeof child === 'object' && child instanceof Array) { // this.children 的情况
                 insertChildren(child)
             } else {
@@ -66,5 +78,9 @@ export function createElement(type, attributes, ...children) {
 }
 
 export function render(component, parentElement) {
-    parentElement.appendChild(component.root); // 注意这里有个 .root，说明在这一步 component 返回的不是元素，.root 才是元素
+    let range = document.createRange();
+    range.setStart(parentElement, 0);
+    range.setEnd(parentElement, parentElement.childNodes.length);
+    range.deleteContents();
+    component[RENDER_TO_DOM](range)
 }
