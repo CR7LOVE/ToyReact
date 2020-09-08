@@ -27,7 +27,7 @@ React.createElement 只是个名字，可以换成自己的，代码中换成了
 
 #第二节课内容：为 toy-react 添加生命周期
 思路：
-1. 添加 this.state 并运行成功
+1. 添加 this.state 并运行成功（这步不用做别的就可以成功，但是注意 JSX 中要写成 toString）
 2. root 换成 range 并运行成功
 3. 添加 setState 并运行简单的 demo 成功
 4. demo 换成官方的 demo 并运行成功
