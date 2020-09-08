@@ -5,11 +5,19 @@ class ElementWrapper {
         this.root = document.createElement(type);
     }
     setAttribute(name, value) {
-        this.root.setAttribute(name, value)
+        if(name.match(/^on([\S\s]+)$/)) {
+            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
+        } else {
+            if(name === 'className') {
+                this.root.setAttribute("class", value)
+            } else {
+                this.root.setAttribute(name, value)
+            }
+        }
     }
     appendChild(component) {
         let range = document.createRange();
-        range.setStart(this.root, this.root.childNodes.length); // TODO: 这里没懂
+        range.setStart(this.root, this.root.childNodes.length);
         range.setEnd(this.root, this.root.childNodes.length);
         component[RENDER_TO_DOM](range);
     }
@@ -33,15 +41,47 @@ export class Component {
     constructor() {
         this.props = Object.create(null);
         this.children = [];
+        this._range = null;
     }
     setAttribute(name, value) {
         this.props[name] = value;
     }
     appendChild(component) {
-        this.children.push(component)
+        this.children.push(component) // 注意这里就没有 .root，上面 L9 有 .root 是因为一个节点要添加另一个节点，所以是 .root appendChild .root，而这里只是存到自己的数组中，所以不用 .root
     }
     [RENDER_TO_DOM](range){
-        this.render()[RENDER_TO_DOM](range); // component[RENDER_TO_DOM](range) 时会调用这里
+        this._range = range;
+        this.render()[RENDER_TO_DOM](range);
+    }
+    rerender() {
+        // TODO：这块没懂，但是老师说没关系，后面会换成 virtual dom
+        let oldRange = this._range;
+
+        let range = document.createRange();
+        range.setStart(oldRange.startContainer, oldRange.startOffset);
+        range.setEnd(oldRange.startContainer, oldRange.startOffset)
+        this[RENDER_TO_DOM](range);
+
+        oldRange.setStart(range.endContainer, range.endOffset);
+        oldRange.deleteContents();
+    }
+    setState(newState) {
+        if(this.state === null || typeof this.state !== 'object') {
+            this.state = newState;
+            this.rerender();
+            return;
+        }
+        let merge = (oldState, newState) => {
+            for (let p in newState) {
+                if(oldState[p] === null || typeof oldState[p] !== 'object') {
+                    oldState[p] = newState[p];
+                } else {
+                    merge(oldState[p], newState[p]) // 对象的情况
+                }
+            }
+        }
+        merge(this.state, newState);
+        this.rerender();
     }
 }
 

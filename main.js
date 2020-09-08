@@ -12,6 +12,7 @@ class MyComponent extends Component{
             <h1>my component</h1>
             { this.children }
             <p>{this.state.f.toString()}</p>
+            <button onClick={() => this.setState({f: this.state.f + 1})}>加 1</button>
         </div>
     }
 }
