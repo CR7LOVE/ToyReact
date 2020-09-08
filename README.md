@@ -29,3 +29,5 @@ React.createElement 只是个名字，可以换成自己的，代码中换成了
 思路：
 1. 添加 this.state 并运行成功
 2. root 换成 range 并运行成功
+3. 添加 setState 并运行简单的 demo 成功
+4. demo 换成官方的 demo 并运行成功
