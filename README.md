@@ -20,3 +20,8 @@ React.createElement 只是个名字，可以换成自己的，代码中换成了
 6. 接 5，再来一次 createElement，此时是 MyComponent 的外壳 div，里面包含了 h1 和 3 个 div，此时 get root 执行完毕，拿到的结果是外壳 div 加个里面的 4 个元素，即自定义元素返回的元素已经拿到了
 7. 添加到 document.body 中
 
+自己写代码中遇到的坑：
+1. 自定义组件在这个步骤中，返回的不是元素，就是一个实例而已，实例的 .root 才是元素
+2. 所以，.root 肯定是自定义组件执行 render() 的结果。然后 document.body.append(com.root)
+3. 先不要抽取 ElementWrapper 和 TextWrapper，写好后再一步步抽取
+

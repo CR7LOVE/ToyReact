@@ -56,7 +56,7 @@ export function createElement(type, attributes, ...children) {
             if(typeof child === 'object' && child instanceof Array) { // this.children 的情况
                 insertChildren(child)
             } else {
-                e.appendChild(child) // 自定义组件添加 child 的情况
+                e.appendChild(child) // 添加的 child 是个原生标签的情况
             }
         }
     };
@@ -66,5 +66,5 @@ export function createElement(type, attributes, ...children) {
 }
 
 export function render(component, parentElement) {
-    parentElement.appendChild(component.root);
+    parentElement.appendChild(component.root); // 注意这里有个 .root，说明在这一步 component 返回的不是元素，.root 才是元素
 }
