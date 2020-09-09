@@ -15,29 +15,78 @@ export class Component {
     get vdom() {
         return this.render().vdom; // 递归调用
     }
-    get vchildren() {
-        return this.children.map(child => child.vdom);
-    }
     [RENDER_TO_DOM](range){
         this._range = range;
-        this.render()[RENDER_TO_DOM](range);
+        this._vdom = this.vdom;
+        this._vdom[RENDER_TO_DOM](range);
     }
-    rerender() {
-        // TODO：这块没懂，但是老师说没关系，后面会换 成 virtual dom
-        let oldRange = this._range;
+    update() {
+        // 对比分两段逻辑：1. 对比根结点，包含 props 2. 对比 children
+        // 如果节点不同，会 replace
 
-        let range = document.createRange();
-        range.setStart(oldRange.startContainer, oldRange.startOffset);
-        range.setEnd(oldRange.startContainer, oldRange.startOffset)
-        this[RENDER_TO_DOM](range);
+        let isSameNode = (oldNode, newNode) => {
+            if(oldNode.type !== newNode.type) {
+                return false;
+            }
+            // 旧的属性比新的属性多，说明不一样了，此时返回 false
+            if(Object.keys(oldNode.props).length > Object.keys(newNode.props).length) {
+                return false;
+            }
 
-        oldRange.setStart(range.endContainer, range.endOffset);
-        oldRange.deleteContents();
+            for(let name in newNode.props) {
+                if(newNode.props[name] !== oldNode.props[name]) {
+                    return false;
+                }
+            }
+            if(newNode.type === '#text') {
+                if(newNode.content !== oldNode.content) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        // 递归，所以写成一个函数
+        let _update = (oldNode, newNode) => {
+            if (!isSameNode(oldNode, newNode)) {
+                newNode[RENDER_TO_DOM](oldNode._range); // 替换，覆盖
+                return;
+            }
+            newNode._range = oldNode._range;
+
+            // 处理 children
+            let newChildren = newNode.vchildren;
+            let oldChildren = oldNode.vchildren;
+            if(!newChildren || !newChildren.length) {
+                return;
+            }
+
+            let tailRange = oldChildren[oldChildren.length - 1]._range;
+
+            for(let i = 0; i < newChildren.length; i++) {
+                let newChild = newChildren[i];
+                let oldChild = oldChildren[i];
+                if(i < oldChildren.length) {
+                    _update(oldChild, newChild);
+                } else {
+                    let range = document.createRange();
+                    range.setStart(tailRange.endContainer, tailRange.endOffset);
+                    range.setEnd(tailRange.endContainer, tailRange.endOffset);
+                    newChild[RENDER_TO_DOM](range);
+                    tailRange = range;
+                }
+
+            }
+        }
+        let vdom = this.vdom; // 新 vdom
+        _update(this._vdom, vdom);
+        this._vdom = vdom;
     }
+
     setState(newState) {
         if(this.state === null || typeof this.state !== 'object') {
             this.state = newState;
-            this.rerender();
+            // this.update();
             return;
         }
         let merge = (oldState, newState) => {
@@ -50,7 +99,7 @@ export class Component {
             }
         }
         merge(this.state, newState);
-        this.rerender();
+        this.update();
     }
 }
 
@@ -59,28 +108,12 @@ class ElementWrapper extends Component{
         super(type);
         this.type = type;
     }
-    // setAttribute(name, value) {
-    //     if(name.match(/^on([\S\s]+)$/)) {
-    //         this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
-    //     } else {
-    //         if(name === 'className') {
-    //             this.root.setAttribute("class", value)
-    //         } else {
-    //             this.root.setAttribute(name, value)
-    //         }
-    //     }
-    // }
-    // appendChild(component) {
-    //     let range = document.createRange();
-    //     range.setStart(this.root, this.root.childNodes.length);
-    //     range.setEnd(this.root, this.root.childNodes.length);
-    //     component[RENDER_TO_DOM](range);
-    // }
     get vdom() {
+        this.vchildren = this.children.map(child => child.vdom)
         return this;
     }
     [RENDER_TO_DOM](range) {
-        range.deleteContents();
+        this._range = range;
 
         // root
         let root = document.createElement(this.type);
@@ -99,15 +132,19 @@ class ElementWrapper extends Component{
             }
         }
 
+        if(!this.vchildren) {
+            this.vchildren = this.children.map(child => child.vdom);
+        }
+
         // children
-        for (let child of this.children) {
+        for (let child of this.vchildren) {
             let childRange = document.createRange();
             childRange.setStart(root, root.childNodes.length);
             childRange.setEnd(root, root.childNodes.length);
             child[RENDER_TO_DOM](childRange);
         }
 
-        range.insertNode(root);
+        repalceContent(range, root);
     }
 }
 
@@ -116,15 +153,24 @@ class TextWrapper extends Component{
         super(content)
         this.type = '#text';
         this.content = content;
-        this.root = document.createTextNode(content);
     }
     get vdom() {
         return this;
     }
     [RENDER_TO_DOM](range) {
-        range.deleteContents();
-        range.insertNode(this.root);
+        this._range = range;
+        let root = document.createTextNode(this.content)
+        repalceContent(range, root);
     }
+}
+
+function repalceContent(range, node) {
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.deleteContents();
+
+    range.setStartBefore(node);
+    range.setEndAfter(node);
 }
 
 // 源码中不是这样子的，这样写方便理解

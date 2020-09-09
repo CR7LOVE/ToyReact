@@ -34,4 +34,5 @@ React.createElement 只是个名字，可以换成自己的，代码中换成了
 
 #第三节课内容：VDOM 的原理和关键实现
 1. 拿到自定义组件的 vdom：为 Component, ElementWrapper, TextWrapper 都添加 vdom
-2. 将 vdom 转换成 dom，这步完成后，就显示在网页上了。转成 vdom 需要转换三个东西：root, props 和 children
+2. 将 vdom 转换成 dom，这步完成后，就显示在网页上了。转成 vdom 需要转换三个东西：root, props 和 
+3. 添加 vdom diff 逻辑
