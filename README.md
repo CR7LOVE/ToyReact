@@ -31,3 +31,6 @@ React.createElement 只是个名字，可以换成自己的，代码中换成了
 2. root 换成 range 并运行成功
 3. 添加 setState 并运行简单的 demo 成功
 4. demo 换成官方的 demo 并运行成功
+
+#第三节课内容：VDOM 的原理和关键实现
+1. 拿到自定义组件的 vdom：为 Component, ElementWrapper, TextWrapper 都添加 vdom

@@ -1,42 +1,5 @@
 const RENDER_TO_DOM = Symbol('render to dom');
 
-class ElementWrapper {
-    constructor(type) {
-        this.root = document.createElement(type);
-    }
-    setAttribute(name, value) {
-        if(name.match(/^on([\S\s]+)$/)) {
-            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
-        } else {
-            if(name === 'className') {
-                this.root.setAttribute("class", value)
-            } else {
-                this.root.setAttribute(name, value)
-            }
-        }
-    }
-    appendChild(component) {
-        let range = document.createRange();
-        range.setStart(this.root, this.root.childNodes.length);
-        range.setEnd(this.root, this.root.childNodes.length);
-        component[RENDER_TO_DOM](range);
-    }
-    [RENDER_TO_DOM](range) {
-        range.deleteContents();
-        range.insertNode(this.root);
-    }
-}
-
-class TextWrapper {
-    constructor(content) {
-        this.root = document.createTextNode(content);
-    }
-    [RENDER_TO_DOM](range) {
-        range.deleteContents();
-        range.insertNode(this.root);
-    }
-}
-
 export class Component {
     constructor() {
         this.props = Object.create(null);
@@ -48,6 +11,9 @@ export class Component {
     }
     appendChild(component) {
         this.children.push(component) // 注意这里就没有 .root，上面 L9 有 .root 是因为一个节点要添加另一个节点，所以是 .root appendChild .root，而这里只是存到自己的数组中，所以不用 .root
+    }
+    get vdom() {
+        return this.render().vdom; // 递归调用
     }
     [RENDER_TO_DOM](range){
         this._range = range;
@@ -82,6 +48,60 @@ export class Component {
         }
         merge(this.state, newState);
         this.rerender();
+    }
+}
+
+class ElementWrapper extends Component{
+    constructor(type) {
+        super(type);
+        this.type = type;
+        this.root = document.createElement(type);
+    }
+    // setAttribute(name, value) {
+    //     if(name.match(/^on([\S\s]+)$/)) {
+    //         this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
+    //     } else {
+    //         if(name === 'className') {
+    //             this.root.setAttribute("class", value)
+    //         } else {
+    //             this.root.setAttribute(name, value)
+    //         }
+    //     }
+    // }
+    // appendChild(component) {
+    //     let range = document.createRange();
+    //     range.setStart(this.root, this.root.childNodes.length);
+    //     range.setEnd(this.root, this.root.childNodes.length);
+    //     component[RENDER_TO_DOM](range);
+    // }
+    get vdom() {
+        return {
+            type: this.type,
+            props: this.props,
+            children: this.children.map(child => child.vdom)
+        }
+    }
+    [RENDER_TO_DOM](range) {
+        range.deleteContents();
+        range.insertNode(this.root);
+    }
+}
+
+class TextWrapper extends Component{
+    constructor(content) {
+        super(content)
+        this.content = content;
+        this.root = document.createTextNode(content);
+    }
+    get vdom() {
+        return {
+            type: '#text',
+            content: this.content,
+        }
+    }
+    [RENDER_TO_DOM](range) {
+        range.deleteContents();
+        range.insertNode(this.root);
     }
 }
 
