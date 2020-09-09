@@ -15,12 +15,15 @@ export class Component {
     get vdom() {
         return this.render().vdom; // 递归调用
     }
+    get vchildren() {
+        return this.children.map(child => child.vdom);
+    }
     [RENDER_TO_DOM](range){
         this._range = range;
         this.render()[RENDER_TO_DOM](range);
     }
     rerender() {
-        // TODO：这块没懂，但是老师说没关系，后面会换成 virtual dom
+        // TODO：这块没懂，但是老师说没关系，后面会换 成 virtual dom
         let oldRange = this._range;
 
         let range = document.createRange();
@@ -55,7 +58,6 @@ class ElementWrapper extends Component{
     constructor(type) {
         super(type);
         this.type = type;
-        this.root = document.createElement(type);
     }
     // setAttribute(name, value) {
     //     if(name.match(/^on([\S\s]+)$/)) {
@@ -75,29 +77,49 @@ class ElementWrapper extends Component{
     //     component[RENDER_TO_DOM](range);
     // }
     get vdom() {
-        return {
-            type: this.type,
-            props: this.props,
-            children: this.children.map(child => child.vdom)
-        }
+        return this;
     }
     [RENDER_TO_DOM](range) {
         range.deleteContents();
-        range.insertNode(this.root);
+
+        // root
+        let root = document.createElement(this.type);
+
+        // props
+        for (let name in this.props) {
+            let value = this.props[name];
+            if(name.match(/^on([\S\s]+)$/)) {
+                root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value);
+            } else {
+                if(name === 'className') {
+                    root.setAttribute("class", value)
+                } else {
+                    root.setAttribute(name, value)
+                }
+            }
+        }
+
+        // children
+        for (let child of this.children) {
+            let childRange = document.createRange();
+            childRange.setStart(root, root.childNodes.length);
+            childRange.setEnd(root, root.childNodes.length);
+            child[RENDER_TO_DOM](childRange);
+        }
+
+        range.insertNode(root);
     }
 }
 
 class TextWrapper extends Component{
     constructor(content) {
         super(content)
+        this.type = '#text';
         this.content = content;
         this.root = document.createTextNode(content);
     }
     get vdom() {
-        return {
-            type: '#text',
-            content: this.content,
-        }
+        return this;
     }
     [RENDER_TO_DOM](range) {
         range.deleteContents();
